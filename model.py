@@ -260,8 +260,53 @@ def forward_backward(model, loss_fn, x, y):
 
     return loss, param_grads
 
-# Step 9 - make_optimizer (not yet solved)
-# TODO: implement
+# Step 9 - make_optimizer
+def make_optimizer(params, lr=1e-2, kind='sgd'):
+    """Build an optimizer that updates params in place.
+
+    Inputs:
+      params: arrays, possibly nested in lists/dicts (or dict of arrays) to optimize
+      lr: float learning rate
+      kind: str algorithm name (e.g. 'sgd')
+
+    Returns:
+      dict with key 'step'. step(grads) applies one in-place update
+      using grads structured like params. Parameter shapes must stay
+      unchanged. Repeated steps must reduce a simple convex objective
+      within a modest fixed budget and keep values finite.
+    """
+    # TODO: your approach here
+    if kind == 'sgd':
+        def step(grads):
+            for i in range(len(params)):
+                if isinstance(params[i], dict):
+                    for key in params[i]:
+                        params[i][key] -= lr * grads[i][key]
+                elif isinstance(params[i], np.ndarray):
+                    params[i] -= lr * grads[i]
+
+    else:
+        def step(grads, adam_state=None, beta1=0.9, beta2=0.99, eps=1e-5):
+            if adam_state == None:
+                adam_state = {'m': [], 'v': [], 't': 0}
+                for param in params:
+                    m = {key:np.zeros_like(val) for key, val in param.items()}
+                    v = {key:np.zeros_like(val) for key, val in param.items()}
+                    adam_state['m'].append(m)
+                    adam_state['v'].append(v)
+
+            adam_state['t'] += 1
+
+            for i in range(len(params)):
+                for key in grads[i]:
+                    adam_state['m'][i][key] = beta1*adam_state['m'][i][key] + (1-beta1)*grads[i][key]
+                    adam_state['v'][i][key] = beta2*adam_state['v'][i][key] + (1-beta2)*grads[i][key]**2
+
+                    m_hat = adam_state['m'][i][key]/(1-beta1**adam_state[t])
+                    v_hat = adam_state['v'][i][key]/(1-beta2**adam_state[t])
+                    params[i][key] -= lr * m_hat/(np.sqrt(v_hat)+eps)
+
+    return {'step' : step}
 
 # Step 10 - train_step (not yet solved)
 # TODO: implement
