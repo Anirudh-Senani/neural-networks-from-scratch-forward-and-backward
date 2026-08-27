@@ -221,10 +221,12 @@ def make_sequential(layers):
 
     def backward(dout, caches):
         dx = dout
-        grads_list = []
-        for layer, cache in zip(layers, caches):
+        grads_list = [None] * len(layers)
+        for i in range(len(layers) - 1, -1, -1):
+            layer = layers[i]
+            cache = caches[i]
             dx, grads = layer['backward'](dx, cache)
-            grads_list.append(grads)
+            grads_list[i] = grads
         return dx, grads_list
 
 
