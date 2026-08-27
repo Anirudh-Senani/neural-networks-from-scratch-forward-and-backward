@@ -133,8 +133,40 @@ def initialize_weights(in_dim, out_dim, scheme='he'):
 
     return W, b
 
-# Step 6 - make_loss (not yet solved)
-# TODO: implement
+# Step 6 - make_loss
+def make_loss(kind='cross_entropy'):
+    """Return a classification loss_fn(logits, labels) -> (loss, d_logits).
+
+    Inputs to loss_fn:
+        logits: (batch, C) float array of raw class scores
+        labels: (batch,) int array of class indices in [0, C)
+    Outputs:
+        loss: Python float, mean scalar loss over the batch (finite)
+        d_logits: (batch, C) gradient of loss w.r.t. logits (finite)
+    Must pass gradient_check, be minimized by confident correct predictions,
+    and stay finite under saturated logits.
+    """
+    # TODO: your approach here
+    if kind == 'cross_entropy':
+        def loss_fn(x, y):
+            shifted = x - x.max(axis=-1, keepdims=True)
+            logsumexp = np.log(np.exp(shifted).sum(axis=-1, keepdims=True))
+            loss = np.mean(logsumexp - shifted[np.arange(y.shape[0]), y])
+            dlogits = np.exp(shifted - logsumexp)
+            dlogits[np.arange(y.shape[0]), y] -= 1.0
+            dlogits /= y.shape[0]
+            return loss, dlogits
+
+        return loss_fn
+    else:
+        def loss_fn(x, y):
+            one_hot = np.zeros_like(x)
+            one_hot[np.arange(y.shape[0]), y] = 1.0
+            loss = ((x - one_hot)**2).mean()
+            dlogits = 2/x.shape[0] * (x - one_hot)
+            return loss, dlogits
+
+        return loss_fn
 
 # Step 7 - make_sequential (not yet solved)
 # TODO: implement
