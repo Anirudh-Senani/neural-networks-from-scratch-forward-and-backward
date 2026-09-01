@@ -360,7 +360,7 @@ def train(model, loss_fn, optimizer, x, y, epochs, batch_size, seed=0, early_sto
     history = []
     patience = 0
 
-    for _ in range(epochs):
+    for ep in range(epochs):
         loss = 0.0
         for i in range(0,num_samples,batch_size):
             x_batch = x[inds[i:i+batch_size], :]
@@ -371,7 +371,7 @@ def train(model, loss_fn, optimizer, x, y, epochs, batch_size, seed=0, early_sto
 
         history.append(loss/num_samples)
 
-        if early_stopping is not None and len(history) > 2:
+        if early_stopping is not None and ep > 2:
             if history[-2] - history[-1] < early_stopping:
                 patience += 1
             else:
