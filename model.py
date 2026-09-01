@@ -330,7 +330,7 @@ def train_step(model, loss_fn, optimizer, x_batch, y_batch):
     return loss
 
 # Step 11 - train
-def train(model, loss_fn, optimizer, x, y, epochs, batch_size, seed=0):
+def train(model, loss_fn, optimizer, x, y, epochs, batch_size, seed=0, early_stopping=None):
     """Run a deterministic minibatch training loop.
 
     Inputs:
@@ -354,6 +354,7 @@ def train(model, loss_fn, optimizer, x, y, epochs, batch_size, seed=0):
     inds = np.arange(num_samples)
     rng.shuffle(inds)
     history = []
+    patience = 0
 
     for _ in range(epochs):
         loss = 0.0
@@ -365,6 +366,15 @@ def train(model, loss_fn, optimizer, x, y, epochs, batch_size, seed=0):
             loss += batch_loss * min(batch_size, y_batch.shape[0])
 
         history.append(loss/num_samples)
+
+        if early_stopping is not None:
+            if history[-2] - history[-1] < early_stopping:
+                patience += 1
+            else:
+                patience = 0
+
+            if patience >= 2:
+                break
 
     return history
 
