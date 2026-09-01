@@ -371,7 +371,7 @@ def train(model, loss_fn, optimizer, x, y, epochs, batch_size, seed=0, early_sto
 
         history.append(loss/num_samples)
 
-        if early_stopping is not None:
+        if early_stopping is not None and len(history) > 2:
             if history[-2] - history[-1] < early_stopping:
                 patience += 1
             else:
@@ -480,6 +480,56 @@ def design_network(input_dim, num_classes, seed=0):
 
     return model, dict(accuracy=accuracy, x=x_eval, y=y_eval)
 
-# Step 13 - improve_generalization (not yet solved)
-# TODO: implement
+# Step 13 - improve_generalization
+def improve_generalization(baseline_model_fn, x_train, y_train, x_val, y_val, seed=0):
+    """Improve held-out accuracy over an unregularized baseline.
+
+    Inputs:
+        baseline_model_fn: zero-arg callable -> fresh untrained sequential model
+            (dict with 'forward', 'backward', 'params') matching the data dims.
+        x_train, y_train: training features (N, D) and int labels (N,).
+        x_val, y_val: validation features (N_val, D) and int labels (N_val,).
+        seed: int for deterministic training.
+
+    Returns:
+        dict with keys:
+            'val_accuracy': float accuracy of the improved model on x_val/y_val
+            'baseline_val_accuracy': float val accuracy of plain unregularized SGD
+            'predictions': np.ndarray shape (N_val,) int preds from improved model
+            'model': the trained improved model
+
+    Required behavior:
+        val_accuracy > baseline_val_accuracy
+        predictions == argmax(model.forward(x_val), axis=1)
+        val_accuracy == mean(predictions == y_val)
+        predictions are non-constant (not a trivial single-class predictor)
+    """
+    # TODO: your approach here
+    np.random.seed(seed)
+    baseline_model = baseline_model_fn()
+    loss_fn = make_loss()
+    baseline_optimizer = make_optimizer(baseline_model['params'])
+
+    epochs = 50
+    batch_size = 64
+    early_stopping = 0.001
+    l2_lambda = 1e-3
+    _ = train(baseline_model, loss_fn, baseline_optimizer, x_train, y_train, epochs, batch_size, seed)
+
+    baseline_preds = np.argmax(baseline_model['forward'](x_val)[0], axis=-1)
+    baseline_val_accuracy = np.mean(baseline_preds == y_val)
+
+    model = baseline_model_fn()
+    optimizer = make_optimizer(model['params'], l2_lambda=l2_lambda)
+    history = train(model, loss_fn, optimizer, x_train, y_train, epochs, batch_size, seed, early_stopping)
+
+    preds = np.argmax(model['forward'](x_val)[0], axis=-1)
+    val_accuracy = np.mean(preds == y_val)
+
+    return dict(
+        baseline_val_accuracy=baseline_val_accuracy,
+        val_accuracy=val_accuracy,
+        predictions=preds,
+        model=model
+    )
 
