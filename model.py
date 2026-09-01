@@ -261,7 +261,7 @@ def forward_backward(model, loss_fn, x, y):
     return loss, param_grads
 
 # Step 9 - make_optimizer
-def make_optimizer(params, lr=1e-2, kind='sgd'):
+def make_optimizer(params, lr=1e-2, l2_lambda=None, kind='sgd'):
     """Build an optimizer that updates params in place.
 
     Inputs:
@@ -281,8 +281,12 @@ def make_optimizer(params, lr=1e-2, kind='sgd'):
             for i in range(len(params)):
                 if isinstance(params[i], dict):
                     for key in params[i]:
+                        if l2_lambda is not None:
+                            params[i][key] -= lr * l2_lambda * params[i][key]
                         params[i][key] -= lr * grads[i][key]
                 elif isinstance(params[i], np.ndarray):
+                    if l2_lambda is not None:
+                        params[i] -= lr * l2_lambda * params[i]
                     params[i] -= lr * grads[i]
 
     else:
