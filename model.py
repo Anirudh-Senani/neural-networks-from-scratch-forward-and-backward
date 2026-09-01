@@ -368,8 +368,103 @@ def train(model, loss_fn, optimizer, x, y, epochs, batch_size, seed=0):
 
     return history
 
-# Step 12 - design_network (not yet solved)
-# TODO: implement
+# Step 12 - design_network
+def generate_pie_clusters(num_clusters=4, points_per_cluster=250, radial_noise=0.1):
+    """
+    Generates concentric ring clusters (linearly inseparable).
+    Each cluster occupies a radial band and spans the full 360 degrees,
+    so no single straight line can separate the classes.
+    """
+    total_points = num_clusters * points_per_cluster
+    labels = np.repeat(np.arange(num_clusters), points_per_cluster)
+
+    # full angular range for every cluster (no angular separation anymore)
+    theta = np.random.rand(total_points) * 2 * np.pi
+
+    # radius now encodes the class -> concentric rings
+    base_radius = labels + 1  # ring 1, 2, 3, ... for each class
+    radius = base_radius + np.random.normal(0, radial_noise, total_points)
+    radius = np.clip(radius, 0, None)
+
+    x = radius * np.cos(theta)
+    y = radius * np.sin(theta)
+
+    features = np.column_stack((x, y))
+    return features, labels
+
+
+def design_network(input_dim, num_classes, seed=0):
+    """Design and train a net that solves a nonlinear classification task.
+
+    Inputs:
+        input_dim: int, feature dimension
+        num_classes: int, number of classes
+        seed: int, RNG seed for reproducibility
+
+    Returns:
+        model: trained sequential model (forward/backward/params)
+        metrics: dict with
+            'accuracy': float >= 0.90 on an evaluation set,
+            'x': np.ndarray (N, input_dim) eval features (N >= 50),
+            'y': np.ndarray (N,) integer eval labels.
+        The eval set (x, y) must not be linearly separable to high accuracy
+        (< 0.82 for a linear classifier), and the model's true accuracy on
+        it must match metrics['accuracy'] and be >= 0.90.
+    """
+    # TODO: your approach here
+    # rng = np.random.default_rng(seed)
+    np.random.seed(seed)
+    x, y = generate_pie_clusters(
+        num_clusters=num_classes, points_per_cluster=512, radial_noise=0.05)
+    # x, y = generate_concentric_rings(n_samples=1280, label_noise=0.05)
+
+    if input_dim > 2:
+        x_in = np.random.rand(x.shape[0], input_dim) * 0.02
+        x_in[:, :2] = x
+    else:
+        x_in = x
+
+    in_dim = input_dim
+    hidden = 32
+    # hidden1 = in_dim*32
+    # hidden2 = in_dim*16
+    # hidden3 = in_dim*8
+    # hidden3 = num_classes*32
+    out_dim = num_classes
+
+    epochs = 50
+    batch_size = 64
+    eval_size = 128
+
+    layers = [
+        make_dense(in_dim, hidden, initialize_weights),
+        make_activation(),
+        make_dense(hidden, hidden, initialize_weights),
+        make_activation(),
+        make_dense(hidden, out_dim, initialize_weights)
+    ]
+
+    inds = np.arange(x_in.shape[0])
+    np.random.shuffle(inds)
+    x = x_in[inds]
+    y = y[inds]
+
+    x_train = x[:-eval_size]
+    y_train = y[:-eval_size]
+    x_eval = x[-eval_size:]
+    y_eval = y[-eval_size:]
+
+    model = make_sequential(layers)
+    loss_fn = make_loss()
+    optimizer = make_optimizer(model['params'])
+    history = train(model, loss_fn, optimizer, x_train,
+                    y_train, epochs, batch_size, seed)
+
+    logits, _ = model['forward'](x_eval)
+    eval_pred = np.argmax(logits, axis=-1)
+    accuracy = (eval_pred == y_eval).sum()/eval_size
+
+    return model, dict(accuracy=accuracy, x=x_eval, y=y_eval)
 
 # Step 13 - improve_generalization (not yet solved)
 # TODO: implement
