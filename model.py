@@ -261,7 +261,7 @@ def forward_backward(model, loss_fn, x, y):
     return loss, param_grads
 
 # Step 9 - make_optimizer
-def make_optimizer(params, lr=1e-2, l2_lambda=None, kind='sgd'):
+def make_optimizer(params, lr=1e-2, kind='sgd', l2_lambda=None):
     """Build an optimizer that updates params in place.
 
     Inputs:
